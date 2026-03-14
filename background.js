@@ -1,28 +1,25 @@
-console.log('🧠 Iris Service Worker: Brain online.');
+console.log('🧠 Iris Service Worker: Brain online (Unfiltered Mode).');
 
-// This is our temporary Regex scrubber while we wire up the local WebGPU AI
-const basicScrub = (text) => {
-  let scrubbed = text;
-  
-  // Strip out @ mentions
-  scrubbed = scrubbed.replace(/@[a-zA-Z0-9_]+/g, '[USER]');
-  
-  // Strip out URLs
-  scrubbed = scrubbed.replace(/https?:\/\/\S+/g, '[LINK]');
-  
-  return scrubbed;
-};
+// The Staging Area: Holds the last 50 posts you've seen
+const localFeedBuffer = [];
+const MAX_BUFFER_SIZE = 50;
 
-// Listen for captured posts from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "SCRUB_TEXT") {
+  if (request.action === "SCRUB_TEXT") { // We'll keep the action name the same so we don't have to edit content.js
     const rawText = request.payload.text;
     
-    // Pass it through the scrubber
-    const sanitizedText = basicScrub(rawText);
+    // Push the raw post into the buffer
+    localFeedBuffer.push({
+      id: request.payload.id,
+      text: rawText,
+      timestamp: Date.now()
+    });
+
+    // Keep the buffer lightweight so it doesn't crash the browser
+    if (localFeedBuffer.length > MAX_BUFFER_SIZE) {
+      localFeedBuffer.shift(); // Drops the oldest post
+    }
     
-    console.log(`🧼 SCRUBBED [${request.payload.id}]:`, sanitizedText.replace(/\n/g, " | "));
-    
-    // In the future, this is where we will broadcast sanitizedText to the IPFS/Helia Mesh!
+    console.log(`📥 BUFFERED [${localFeedBuffer.length}/${MAX_BUFFER_SIZE}]:`, rawText.replace(/\n/g, " ").substring(0, 60) + "...");
   }
 });
