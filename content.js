@@ -31,20 +31,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 const scrapedPosts = new Set(); // Prevents reading the same post twice
 
 const parsePost = (articleElement) => {
-  // X (Twitter) wraps tweet text in a div with this specific data-testid
   const textElement = articleElement.querySelector('[data-testid="tweetText"]'); 
   
   if (textElement) {
     const postText = textElement.innerText;
-    
-    // Create a unique ID for the post to avoid duplicates
     const postId = btoa(encodeURIComponent(postText).substring(0, 20)).substring(0, 10); 
     
     if (!scrapedPosts.has(postId)) {
       scrapedPosts.add(postId);
       
-      // Log the captured post (We will send this to the AI Scrubber later)
-      console.log("🪝 Captured Post:", postText.replace(/\n/g, " | ")); 
+      console.log("🪝 Captured Post (Sending to Brain):", postText.replace(/\n/g, " | ")); 
+      
+      // NEW: Send the raw text to the background service worker for scrubbing
+      chrome.runtime.sendMessage({
+        action: "SCRUB_TEXT",
+        payload: { id: postId, text: postText }
+      });
     }
   }
 };
