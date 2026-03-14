@@ -1,0 +1,21 @@
+#iris-world-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 10, 10, 0.95);
+  z-index: 999999;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.iris-container {
+  padding: 50px; 
+  text-align: center; 
+  color: white;
+  border: 1px solid #333;
+  border-radius: 12px;
+  background: black;
+}
