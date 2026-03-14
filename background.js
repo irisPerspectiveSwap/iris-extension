@@ -1,25 +1,47 @@
+// Import the locally bundled Gun library to ensure private, decentralized networking
+importScripts('gun.js');
+
 console.log('🧠 Iris Service Worker: Brain online (Unfiltered Mode).');
+
+// Initialize the Peer-to-Peer node using public relays to find other users
+const peers = ['https://gun-manhattan.herokuapp.com/gun'];
+const gun = Gun({ peers: peers });
+
+// Create a dedicated channel for Iris users to share perspectives
+const irisMesh = gun.get('iris-perspective-swap-mesh');
 
 // The Staging Area: Holds the last 50 posts you've seen
 const localFeedBuffer = [];
 const MAX_BUFFER_SIZE = 50;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "SCRUB_TEXT") { // We'll keep the action name the same so we don't have to edit content.js
+  if (request.action === "SCRUB_TEXT") { 
     const rawText = request.payload.text;
     
-    // Push the raw post into the buffer
     localFeedBuffer.push({
       id: request.payload.id,
       text: rawText,
       timestamp: Date.now()
     });
 
-    // Keep the buffer lightweight so it doesn't crash the browser
     if (localFeedBuffer.length > MAX_BUFFER_SIZE) {
-      localFeedBuffer.shift(); // Drops the oldest post
+      localFeedBuffer.shift(); 
     }
     
     console.log(`📥 BUFFERED [${localFeedBuffer.length}/${MAX_BUFFER_SIZE}]:`, rawText.replace(/\n/g, " ").substring(0, 60) + "...");
+
+    // Broadcast the local node's status to the mesh to indicate readiness to share
+    irisMesh.get('active_nodes').get('my-local-node').put({
+      status: 'online',
+      bufferSize: localFeedBuffer.length,
+      lastUpdate: Date.now()
+    });
+  }
+});
+
+// Listen to the mesh for other nodes offering to share their feed
+irisMesh.get('active_nodes').map().on((data, nodeId) => {
+  if (data && nodeId !== 'my-local-node') {
+    console.log(`📡 MESH RADAR: Found peer [${nodeId}] with ${data.bufferSize} posts ready to swap.`);
   }
 });

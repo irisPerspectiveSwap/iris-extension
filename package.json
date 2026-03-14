@@ -12,5 +12,8 @@
   "type": "commonjs",
   "devDependencies": {
     "eslint": "^10.0.3"
+  },
+  "dependencies": {
+    "gun": "^0.2020.1241"
   }
 }
