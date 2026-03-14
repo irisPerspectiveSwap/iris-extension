@@ -1,9 +1,13 @@
-// Import the locally bundled Gun library to ensure private, decentralized networking
+// Trick GunDB into thinking it has a browser window
+var window = self;
+var global = self;
+
+// Import the locally bundled Gun library
 importScripts('gun.js');
 
 console.log('🧠 Iris Service Worker: Brain online (Unfiltered Mode).');
 
-// Initialize the Peer-to-Peer node using public relays to find other users
+// Initialize the Peer-to-Peer node
 const peers = ['https://gun-manhattan.herokuapp.com/gun'];
 const gun = Gun({ peers: peers });
 
@@ -30,7 +34,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     console.log(`📥 BUFFERED [${localFeedBuffer.length}/${MAX_BUFFER_SIZE}]:`, rawText.replace(/\n/g, " ").substring(0, 60) + "...");
 
-    // Broadcast the local node's status to the mesh to indicate readiness to share
+    // Broadcast the local node's status to the mesh
     irisMesh.get('active_nodes').get('my-local-node').put({
       status: 'online',
       bufferSize: localFeedBuffer.length,
