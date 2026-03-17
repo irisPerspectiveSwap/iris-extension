@@ -8,11 +8,10 @@ importScripts('gun.js');
 console.log('🧠 Iris Service Worker: Brain online (Unfiltered Mode).');
 
 // Initialize the Peer-to-Peer node
-// Initialize the Peer-to-Peer node with reliable community relays
+// Initialize the Peer-to-Peer node with fresh community relays
 const peers = [
-  'https://relay.peer.ooo/gun',
-  'https://peer.wallie.io/gun',
-  'https://gun-rs.iris.to/gun'
+  'http://localhost:8765/gun',
+  'https://relay.peer.ooo/gun' // We'll keep the one public node that survived as a backup!
 ];
 const gun = Gun({ peers: peers });
 
