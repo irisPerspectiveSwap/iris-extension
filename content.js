@@ -13,9 +13,42 @@ irisOverlay.innerHTML = `
 const startSwap = () => {
   const feed = document.querySelector('main') || document.querySelector('section');
   if (feed) {
+    // 1. Hide the echo chamber
     feed.style.display = 'none'; 
     document.body.appendChild(irisOverlay);
-    console.log("Echo chamber successfully blurred. Loading world view...");
+    console.log("Echo chamber successfully blurred. Requesting peer feed...");
+
+    const container = irisOverlay.querySelector('.iris-container');
+
+    // 2. Ask the Brain for a feed from the Decentralized Mesh
+    chrome.runtime.sendMessage({ action: "REQUEST_SWAP" }, (response) => {
+      if (response && response.success) {
+        // Paint the Stranger's Feed
+        container.innerHTML = `
+          <h1>Perspective Swapped 👁️</h1>
+          <p style="color: #888; margin-bottom: 20px;">You are viewing a live, unfiltered feed from a random peer.</p>
+          <div id="peer-feed" style="text-align: left; max-height: 70vh; overflow-y: auto; background: #111; padding: 20px; border-radius: 8px;"></div>
+          <button onclick="window.location.reload()" style="margin-top:20px; padding: 10px 20px; background: white; color: black; border-radius: 5px; cursor: pointer; border: none;">Return to Reality</button>
+        `;
+        
+        const feedDiv = container.querySelector('#peer-feed');
+        
+        // Loop through the peer's posts and render them
+        response.feed.reverse().forEach(post => {
+           const postEl = document.createElement('div');
+           postEl.style.cssText = 'padding: 15px; border-bottom: 1px solid #333; margin-bottom: 10px; font-size: 15px; line-height: 1.5;';
+           postEl.innerText = post.text;
+           feedDiv.appendChild(postEl);
+        });
+      } else {
+        // No peers found
+        container.innerHTML = `
+          <h1>Network Empty</h1>
+          <p style="color: #888; margin-top: 10px;">${response ? response.message : "Error connecting to Brain."}</p>
+          <button onclick="window.location.reload()" style="margin-top:20px; padding: 10px 20px; background: white; color: black; border-radius: 5px; cursor: pointer; border: none;">Return to Reality</button>
+        `;
+      }
+    });
   }
 };
 

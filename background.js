@@ -8,7 +8,12 @@ importScripts('gun.js');
 console.log('🧠 Iris Service Worker: Brain online (Unfiltered Mode).');
 
 // Initialize the Peer-to-Peer node
-const peers = ['https://gun-manhattan.herokuapp.com/gun'];
+// Initialize the Peer-to-Peer node with reliable community relays
+const peers = [
+  'https://relay.peer.ooo/gun',
+  'https://peer.wallie.io/gun',
+  'https://gun-rs.iris.to/gun'
+];
 const gun = Gun({ peers: peers });
 
 // Create a dedicated channel for Iris users to share perspectives
@@ -19,6 +24,7 @@ const localFeedBuffer = [];
 const MAX_BUFFER_SIZE = 50;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // 1. Handling outgoing data (Scraping)
   if (request.action === "SCRUB_TEXT") { 
     const rawText = request.payload.text;
     
@@ -32,14 +38,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       localFeedBuffer.shift(); 
     }
     
-    console.log(`📥 BUFFERED [${localFeedBuffer.length}/${MAX_BUFFER_SIZE}]:`, rawText.replace(/\n/g, " ").substring(0, 60) + "...");
-
-    // Broadcast the local node's status to the mesh
+    // Broadcast the status AND the actual text feed to the mesh
     irisMesh.get('active_nodes').get('my-local-node').put({
       status: 'online',
       bufferSize: localFeedBuffer.length,
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
+      feed: JSON.stringify(localFeedBuffer) // Sharing the actual posts!
     });
+  }
+
+  // 2. Handling incoming data (The Swap)
+  if (request.action === "REQUEST_SWAP") {
+    let foundFeed = false;
+    
+    // Scan the mesh for an active peer
+    irisMesh.get('active_nodes').map().once((data, nodeId) => {
+      // Find the first peer that isn't us, and has a feed
+      if (!foundFeed && data && nodeId !== 'my-local-node' && data.feed) {
+         foundFeed = true;
+         console.log(`👁️ Swapping perspective with peer: ${nodeId}`);
+         sendResponse({ success: true, feed: JSON.parse(data.feed) });
+      }
+    });
+
+    // If no peers are found after 2 seconds, return a fallback message
+    setTimeout(() => {
+      if (!foundFeed) {
+         sendResponse({ success: false, message: "No active peers found on the mesh. Keep scrolling to seed the network!" });
+      }
+    }, 2000);
+    
+    return true; // Keeps the message channel open for the async GunDB response
   }
 });
 
