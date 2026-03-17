@@ -18,6 +18,10 @@ const gun = Gun({ peers: peers });
 // Create a dedicated channel for Iris users to share perspectives
 const irisMesh = gun.get('iris-perspective-swap-mesh');
 
+// NEW: Generate a random, unique ID for this specific browser
+const MY_NODE_ID = 'iris-node-' + Math.random().toString(36).substr(2, 9);
+console.log(`🤖 My Unique Mesh ID: ${MY_NODE_ID}`);
+
 // The Staging Area: Holds the last 50 posts you've seen
 const localFeedBuffer = [];
 const MAX_BUFFER_SIZE = 50;
@@ -37,12 +41,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       localFeedBuffer.shift(); 
     }
     
-    // Broadcast the status AND the actual text feed to the mesh
-    irisMesh.get('active_nodes').get('my-local-node').put({
+    // Broadcast the local node's status to the mesh
+    irisMesh.get('active_nodes').get(MY_NODE_ID).put({
       status: 'online',
       bufferSize: localFeedBuffer.length,
       lastUpdate: Date.now(),
-      feed: JSON.stringify(localFeedBuffer) // Sharing the actual posts!
+      feed: JSON.stringify(localFeedBuffer) 
     });
   }
 
@@ -53,7 +57,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Scan the mesh for an active peer
     irisMesh.get('active_nodes').map().once((data, nodeId) => {
       // Find the first peer that isn't us, and has a feed
-      if (!foundFeed && data && nodeId !== 'my-local-node' && data.feed) {
+      if (!foundFeed && data && nodeId !== MY_NODE_ID && data.feed) {
          foundFeed = true;
          console.log(`👁️ Swapping perspective with peer: ${nodeId}`);
          sendResponse({ success: true, feed: JSON.parse(data.feed) });
